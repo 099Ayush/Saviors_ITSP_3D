@@ -63,7 +63,7 @@
             <td><button id="res">Resolution</button></td>
             <td><button id="cam">Camera</button></td>
             <td><button id="bld">Buildings</button></td>
-            <td style="color: white">1<input type="range" id="cam_attach" min="1" max="5" value="1">5</td>
+            <td style="color: white; width: 100%">1<input type="range" id="cam_attach" min="1" max="100" value="1" style="width: 100%">100</td>
         </tr>
         <tr>
             <td></td>
@@ -179,16 +179,12 @@
 
                     // The array of all cars in the city.
                     const cars = [];
-                    cars.push(new Car(5, 2, 1.5, 90, 1, 0));
-                    scene.add(cars[0].object);
-                    cars.push(new Car(5, 2, 1.5, 50, 1, -20));
-                    scene.add(cars[1].object);
-                    cars.push(new Car(5, 2, 1.5, 50, 1, -100));
-                    scene.add(cars[2].object);
-                    cars.push(new Car(5, 2, 1.5, -50, -1, -480));
-                    scene.add(cars[3].object);
-                    cars.push(new Car(5, 2, 1.5, -90, -1, -500));
-                    scene.add(cars[4].object);
+                    for (let i = 0; i < 100; i += 2) {
+                        cars.push(new Car(5, 2, 1.5, 70 + Math.random() * 70, 1, -100 * (i + Math.random())));
+                        scene.add(cars[i].object);
+                        cars.push(new Car(5, 2, 1.5, -70 - Math.random() * 70, -1, -100 * (i + 1 + Math.random())));
+                        scene.add(cars[i + 1].object);
+                    }
 
                     let order = [...Array(cars.length).keys()];
                     for (let i = 0; i < cars.length; i++) {
