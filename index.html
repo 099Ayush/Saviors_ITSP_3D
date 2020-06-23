@@ -225,6 +225,8 @@
                                         order[a + car.lane] = index;
                                         update_rel(index);
                                         update_rel(order[a]);
+                                        update_rel(order[a + 2 * car.lane]);
+                                        update_rel(order[a - car.lane]);
                                         car.overtaking_phase = 3;
                                     }
                                 }
@@ -299,6 +301,7 @@
 
                     function update_rel(index) {
                         let found1 = false, found2 = false;
+                        if (index < 0 || index >= cars.length) return;
                         let lane = cars[index].lane;
                         let ii = order.indexOf(index);
                         for (let i = ii + lane; lane * i < cars.length * (1 + lane) / 2; i += lane) {
