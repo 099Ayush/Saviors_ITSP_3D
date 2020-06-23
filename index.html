@@ -185,6 +185,7 @@
                         cars.push(new Car(5, 2, 1.5, -70 - Math.random() * 70, -1, -100 * (i + 1 + Math.random())));
                         scene.add(cars[i + 1].object);
                     }
+                    cars[0].speed = 140 * 5 / 18;
 
                     let order = [...Array(cars.length).keys()];
                     for (let i = 0; i < cars.length; i++) {
