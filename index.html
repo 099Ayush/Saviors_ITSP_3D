@@ -249,6 +249,7 @@
                         resolution = resolution % 3 + 1;
                         renderer.setSize(innerWidth / resolution, innerHeight / resolution, false);
                         $('span#res_value').html('1 / ' + resolution);
+                        renderer.render(scene, camera);
                     });
 
                     $('button#cam').click(function () {
