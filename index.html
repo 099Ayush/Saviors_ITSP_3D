@@ -168,6 +168,7 @@
                             lane: lane,
                             accn: 0,
                             overtaking_phase: 0,
+                            overtaking_type: 0,
                             object: model.scene.clone()
                         };
                         obj.object.scale.set(x_factor * width, y_factor * height, z_factor * length);
@@ -207,17 +208,14 @@
                             cars.forEach(function(car, index) {
                                 car.object.position.z -= car.speed * (t1 - t0) / 1000;
                                 if (car.car1 !== null) {
-                                    if (car.lane * car.object.position.z <= car.lane * (car.car1.object.position.z + safe_distance * car.lane) && car.car1.speed * car.lane < car.speed * car.lane) {
+                                    if (car.lane * car.object.position.z <= car.lane * car.car1.object.position.z + 2 * safe_distance + car.length / 2 + car.car1.length / 2 && car.car1.speed * car.lane < car.speed * car.lane) {
                                         car.overtaking_phase = 1;
-                                        if (car.lane * car.object.position.x >= 1.75) {
-                                            car.overtaking_phase = 2;
-                                        }
                                     }
-                                    if (car.lane * car.object.position.z + car.length / 2 <= car.lane * car.car1.object.position.z - car.car1.length / 2) {
+                                    if (car.overtaking_phase === 1 && car.lane * car.object.position.x >= 1.75) {
+                                        car.overtaking_phase = 2;
+                                    }
+                                    if (car.overtaking_phase === 2 && car.lane * car.object.position.z + car.length / 2 <= car.lane * car.car1.object.position.z - car.car1.length / 2) {
                                         car.overtaking_phase = 2.5;
-                                    }
-                                    if (car.overtaking_phase === 1) {
-                                        car.object.position.x += 3.5 / 1.5 * (t1 - t0) / 1000 * car.lane;
                                     }
                                     if (car.overtaking_phase === 2.5) {
                                         let a = order.indexOf(index);
@@ -226,13 +224,28 @@
                                         for (let i = 0; i < cars.length; i++) {
                                             update_rel(i);
                                         }
-                                        car.overtaking_phase = 3;
+                                        car.overtaking_phase = 2.75;
+                                    }
+                                    if (car.car1 !== null && car.car1.overtaking_phase === 2.75 && car.lane * car.car1.object.position.z + car.car1.length / 2 + safe_distance <= car.lane * car.object.position.z - car.length / 2) {
+                                        car.car1.overtaking_phase = 3;
+                                    }
+                                    if (car.overtaking_phase === 1) {
+                                        car.object.position.x += 3.5 / 1.5 * (t1 - t0) / 1000 * car.lane;
                                     }
                                 }
                                 if (car.overtaking_phase === 3) {
                                     car.object.position.x -= 3.5 / 1.5 * (t1 - t0) / 1000 * car.lane;
                                     if (car.lane * car.object.position.x <= -1.75) {
                                         car.overtaking_phase = 0;
+                                    }
+                                }
+                                if (car.car2 !== null && car.object.position.z * car.lane <= car.car2.object.position.z * car.lane) {
+                                    console.log(cars.indexOf(car), cars.indexOf(car.car2));
+                                    let a = order.indexOf(index);
+                                    order[a] = order[a + car.lane];
+                                    order[a + car.lane] = index;
+                                    for (let i = 0; i < cars.length; i++) {
+                                        update_rel(i);
                                     }
                                 }
                             });
