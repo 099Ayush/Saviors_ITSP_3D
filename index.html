@@ -63,7 +63,9 @@
             <td><button id="res">Resolution</button></td>
             <td><button id="cam">Camera</button></td>
             <td><button id="bld">Buildings</button></td>
-            <td style="color: white; width: 100%">1<input type="range" id="cam_attach" min="1" max="100" value="1" style="width: 100%">100</td>
+            <td style="color: white">1</td>
+            <td style="color: white; width: 100%"><input type="range" id="cam_attach" min="1" max="100" value="1" style="width: 100%"></td>
+            <td style="color: white">100</td>
         </tr>
         <tr>
             <td></td>
@@ -164,6 +166,7 @@
                             length:length,
                             width: width,
                             height: height,
+                            init_speed: init_speed * 5 / 18,
                             speed: init_speed * 5 / 18,
                             lane: lane,
                             accn: 0,
@@ -183,17 +186,18 @@
                     for (let i = 0; i < 100; i += 2) {
                         cars.push(new Car(5, 2, 1.5, 70 + Math.random() * 70, 1, -100 * (i + Math.random())));
                         scene.add(cars[i].object);
-                        cars.push(new Car(5, 2, 1.5, -70 - Math.random() * 70, -1, -100 * (i + 1 + Math.random())));
+                        cars.push(new Car(5, 2, 1.5, 70 + Math.random() * 70, -1, -100 * (i + 1 + Math.random())));
                         scene.add(cars[i + 1].object);
                     }
                     cars[0].speed = 140 * 5 / 18;
+                    cars[0].init_speed =  140 * 5 / 18;
 
                     let order = [...Array(cars.length).keys()];
                     for (let i = 0; i < cars.length; i++) {
                         update_rel(i);
                     }
 
-                    let t1, frame_rate = 60, focus = cars[0], safe_distance = 10;
+                    let t1, frame_rate = 60, focus = cars[0], safe_distance = 10, eta = 0.02;
                     // Perspective Camera
                     const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.01, 800);
                     camera.position.set(focus.object.position.x + 0.3 * focus.lane, 1.3, focus.object.position.z + 0.2 * focus.lane);
@@ -206,10 +210,14 @@
                             t1 = $.now();
 
                             cars.forEach(function(car, index) {
-                                car.object.position.z -= car.speed * (t1 - t0) / 1000;
+                                let av = car.speed;
+                                car.speed += car.accn * (t1 - t0) / 1000;
+                                av = (av + car.speed / 2);
+                                car.object.position.z -= av * (t1 - t0) / 1000 * car.lane;
                                 if (car.car1 !== null) {
                                     if (car.lane * car.object.position.z <= car.lane * car.car1.object.position.z + 2 * safe_distance + car.length / 2 + car.car1.length / 2 && car.car1.speed * car.lane < car.speed * car.lane) {
                                         car.overtaking_phase = 1;
+                                        car.accn = predict_accn1(car.car1.speed);
                                     }
                                     if (car.overtaking_phase === 1 && car.lane * car.object.position.x >= 1.75) {
                                         car.overtaking_phase = 2;
@@ -227,20 +235,24 @@
                                         car.overtaking_phase = 2.75;
                                     }
                                     if (car.car1 !== null && car.car1.overtaking_phase === 2.75 && car.lane * car.car1.object.position.z + car.car1.length / 2 + safe_distance <= car.lane * car.object.position.z - car.length / 2) {
+                                        car.car1.accn = - car.car1.speed * eta;
                                         car.car1.overtaking_phase = 3;
                                     }
                                     if (car.overtaking_phase === 1) {
                                         car.object.position.x += 3.5 / 1.5 * (t1 - t0) / 1000 * car.lane;
                                     }
-                                }
-                                if (car.overtaking_phase === 3) {
-                                    car.object.position.x -= 3.5 / 1.5 * (t1 - t0) / 1000 * car.lane;
-                                    if (car.lane * car.object.position.x <= -1.75) {
-                                        car.overtaking_phase = 0;
+                                    if (car.car1 !== null && car.car1.overtaking_phase === 3) {
+                                        car.car1.object.position.x -= 3.5 / 1.5 * (t1 - t0) / 1000 * car.lane;
+                                        if (car.lane * car.car1.object.position.x <= -1.75) {
+                                            car.car1.overtaking_phase = 0;
+                                        }
+                                    }
+                                    if (car.speed < car.init_speed) {
+                                        car.speed = car.init_speed;
+                                        car.accn = 0;
                                     }
                                 }
                                 if (car.car2 !== null && car.object.position.z * car.lane <= car.car2.object.position.z * car.lane) {
-                                    console.log(cars.indexOf(car), cars.indexOf(car.car2));
                                     let a = order.indexOf(index);
                                     order[a] = order[a + car.lane];
                                     order[a + car.lane] = index;
@@ -253,6 +265,7 @@
                             transit_road();
                             t0 = $.now();
                             renderer.render(scene, camera);
+                            console.log(cars[0].speed * 18 / 5);
                         }, 1000 / frame_rate);
                     }
 
@@ -329,6 +342,39 @@
                         }
                         if (!found1) cars[index].car1 = null;
                         if (!found2) cars[index].car2 = null;
+                    }
+
+                    function predict_accn1(speed) {
+                        switch (true) {
+                            case speed < 19.6:
+                                return 0.89;
+                            case speed < 22.4:
+                                return 0.80;
+                            case speed < 25.17:
+                                return 0.72;
+                            default:
+                                return 0.73;
+                        }
+                    }
+
+                    function predict_accn2(speed) {
+                        switch (true) {
+                            case speed < 22.4:
+                                return 0.53;
+                            case speed < 25.17:
+                                return 0.41;
+                            default:
+                                return 0.51;
+                        }
+                    }
+
+                    function overtake_possible (car) {
+                        let vB_rel = car.speed - car.car1.speed;
+                        if (vB_rel < 0) return 0;
+                        let vC_rel = car.car2.speed + car.car1.speed;
+                        let a1 = predict_accn1(car.car1.speed), a2 = predict_accn2(car.car1.speed);
+                        let pB = 0, pC = (car.car2.object.position.z - car.object.position.z) * (- car.lane);
+
                     }
                 }
             );
