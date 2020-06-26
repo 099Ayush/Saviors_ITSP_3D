@@ -170,8 +170,12 @@
                             speed: init_speed * 5 / 18,
                             lane: lane,
                             accn: 0,
+                            di: 0,
                             overtaking_phase: 0,
                             overtaking_type: 0,
+                            car0: null,
+                            car1: null,
+                            car2: null,
                             object: model.scene.clone()
                         };
                         obj.object.scale.set(x_factor * width, y_factor * height, z_factor * length);
@@ -183,7 +187,7 @@
 
                     // The array of all cars in the city.
                     const cars = [];
-                    for (let i = 0; i <= 2; i += 2) {
+                    for (let i = 0; i <= 4; i += 2) {
                         cars.push(new Car(5, 2, 1.5, 50 + Math.random() * 50, 1, -100 * (i + Math.random())));
                         scene.add(cars[i].object);
                         cars.push(new Car(5, 2, 1.5, 50 + Math.random() * 50, -1, -500 * (i + 1 + Math.random())));
@@ -214,53 +218,35 @@
                             t1 = $.now();
 
                             cars.forEach(function(car) {
-                                car.object.position.z -= car.speed * (t1 - t0) / 1000 * car.lane;
-                                let av = car.speed, vs0;
-                                let f1 = 3.5 / 1.5, f2 = 3.5 / 1.5;
-                                if (car.car0 !== null) vs0 = car.speed - car.car0.speed;
-                                if (car.car1 !== null && car.speed >= car.car1.speed) {
-                                    let op = parseInt($('#top_value').val());
-                                    f1 = Math.abs(3.5 / safe_distance * (car.speed - car.car1.speed));
-                                    let ds1 = (car.car1.object.position.z - car.object.position.z) * (-car.lane) - (car.length + car.car1.length) / 2;
-                                    if (ds1 > safe_distance * 3) {
-                                        car.object.position.x = car.lane * Math.max(car.object.position.x * car.lane - f2 * (t1 - t0) / 1000, -1.75);
-                                        if (car.car0 !== null && vs0 > 20 * 5 / 18 && car.speed > car.init_speed && car.di === 0) {
-                                            car.di = 3.65;
-                                        }
-                                        if (car.speed <= car.init_speed) car.di = 0;
-                                        car.speed -= car.di * (t1 - t0) / 1000;
-                                    } else if (ds1 > 2 * safe_distance) {
-                                        if (car.speed <= car.car1.speed + 10 * 5 / 18) {
-                                            if (car.di === 0) {
-                                                car.di = 3 * Math.pow(Math.abs(car.speed - car.car1.speed), 2) / (2 * ds1);
-                                            }
-                                            car.speed -= car.di * (t1 - t0) / 1000;
-                                        }
-                                    } else if (ds1 > - (car.length + car.car1.length) / 2) {
-                                        if (op && car.speed >= car.car1.speed) {
-                                            car.object.position.x = car.lane * Math.min(car.object.position.x * car.lane + f1 * (t1 - t0) / 1000, 1.75);
-                                            car.speed += 3.65 * (t1 - t0) / 1000;
+                                let av = car.speed;
+                                if (car.car1 !== null) {
+                                    let op = parseInt($('#op_value').val());
+                                    let xA = - car.object.position.z * car.lane, xB = - car.car1.object.position.z * car.lane;
+                                    let vA = car.speed, vB = car.car1.speed;
+                                    let lA = car.length, lB = car.car1.length;
+                                    if (xB - xA - (lA + lB) / 2 >= safe_distance * 4 && (car.car0 === null || xA - car.car0.object.position.z * car.lane >= 10)) {
+                                        car.object.position.x = car.lane * Math.max(car.object.position.x * car.lane - 3.5 / 2 * (t1 - t0) / 1000, -1.75);
+                                        if (vA !== car.init_speed) {
+                                            car.accn = Math.sign(car.init_speed - vA) * 3.5;
+                                        } else car.accn = 0;
+                                    } else if (xB - xA - (lA + lB) / 2 >= safe_distance) {
+                                        if (vA > vB) {
+                                            car.accn = - Math.pow(Math.abs(vA - vB), 2) / (2 * (xB - xA - (lA + lB) / 2 - safe_distance));
                                         } else {
-                                            car.object.position.x = car.lane * Math.max(car.object.position.x * car.lane - f2 * (t1 - t0) / 1000, -1.75);
-                                            let accn = 3 * Math.pow(Math.abs(car.speed - car.car1.speed), 2) / (2 * ds1 - (car.length + car.car1.length) + 1);
-                                            car.speed = Math.max(car.speed - accn * (t1 - t0) / 1000, car.car1.speed);
+                                            car.speed = vB;
+                                            car.accn = 0;
+                                        }
+                                    } else {
+                                        if (op) {
+                                            car.object.position.x = car.lane * Math.min(car.object.position.x * car.lane + 3.5 / 2 * (t1 - t0) / 1000, 1.75);
+                                            car.accn = 3.5;
                                         }
                                     }
-                                    // else if (ds1 > - (car.length + car.car1.length) / 2) {
-                                    //     car.di = 0;
-                                    //     car.speed += 3.65 * (t1 - t0) / 1000;
-                                    //     car.object.position.x = car.lane * Math.min(car.object.position.x * car.lane + f1 * (t1 - t0) / 1000, 1.75);
-                                    // }
-                                } else {
-                                    car.object.position.x = car.lane * Math.max(car.object.position.x * car.lane - f2 * (t1 - t0) / 1000, -1.75);
-                                    if (car.car0 !== null && vs0 > 20 * 5 / 18 && car.speed > car.init_speed && car.di === 0) {
-                                        car.di = 3.65;
-                                    }
-                                    if (car.speed <= car.init_speed) car.di = 0;
-                                    car.speed -= car.di * (t1 - t0) / 1000;
                                 }
-                                av = (av + car.speed / 2);
-                                car.object.position.z -= av * (t1 - t0) / 1000 * car.lane;
+                                car.speed += car.accn * (t1 - t0) / 1000;
+                                av = (av + car.speed) / 2;
+                                car.object.position.z -= av * car.lane * (t1 - t0) / 1000;
+                                console.log(cars[0].object.position.z - cars[2].object.position.z);
                             });
 
                             change_cam();
@@ -273,8 +259,8 @@
                             for (let i = 0; i < cars.length; i++) {
                                 update_rel(i);
                             }
-                            if (cars[0].car1 !== null) console.log(cars[0].speed * 18 / 5, cars[0].car1.speed * 18 / 5);
-                            else console.log(cars[0].speed * 18 / 5);
+                            // if (cars[0].car1 !== null) console.log(cars[0].speed * 18 / 5, cars[0].car1.speed * 18 / 5, cars[0].accn);
+                            // else console.log(cars[0].speed * 18 / 5, cars[0].accn);
                         }, 1000 / frame_rate);
                     }
 
