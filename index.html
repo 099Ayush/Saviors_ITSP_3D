@@ -243,7 +243,7 @@
                                     car.object.position.x = car.lane * Math.max(car.lane * car.object.position.x - 1.75 * (t1 - t0) / 1000, -1.75);
                                 } else if (car.car1 !== null && car.overtaking_phase === 2) {
                                     let car1 = car.car1;
-                                    if (car1.overtaking_phase !== 1) car1 = car.car1.car1;
+                                    if (car1.overtaking_phase === 0) car1 = car.car1.car1;
                                     car.accn = - Math.pow(Math.abs(car1.speed - car.speed), 2) / (2 * ((car1.object.position.z - car.object.position.z) * (-car.lane) - safe_distance - 5))
                                     car.object.position.x = car.lane * Math.max(car.lane * car.object.position.x - 1.75 * (t1 - t0) / 1000, -1.75);
                                     if (car.speed < car1.speed) {
